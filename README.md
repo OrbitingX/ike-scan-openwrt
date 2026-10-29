@@ -4,30 +4,39 @@ Prebuilt static `ike-scan` 1.9.5 for aarch64 OpenWrt routers (GL.iNet, etc.).
 OpenWrt's opkg repos do not ship ike-scan, so this is a manual build for
 routers that need IKE probing (WiFi Calling / VoWiFi diagnosis, IPsec troubleshooting).
 
-## Files
+## Quick install on your router (no manual transfer needed)
 
-- `ike-scan-aarch64-static` — static aarch64 binary (222 KB, stripped). **Download this from Releases** (binary cannot be pushed via API, see below).
+Download the release zip directly on the router and install:
+
+```sh
+opkg update && opkg install unzip
+cd /tmp
+wget https://github.com/OrbitingX/ike-scan-openwrt/releases/download/v1.9.5/ike-scan-openwrt-aarch64-v1.9.5.zip
+unzip -o ike-scan-openwrt-aarch64-v1.9.5.zip -d ike-scan-pkg
+cp ike-scan-pkg/ike-scan /usr/bin/ike-scan
+chmod +x /usr/bin/ike-scan
+mkdir -p /usr/share/ike-scan
+cp ike-scan-pkg/ike-vendor-ids ike-scan-pkg/ike-backoff-patterns /usr/share/ike-scan/
+ike-scan --version
+# should print: ike-scan 1.9.5
+```
+
+No scp, no USB, no manual file transfer — the router pulls it straight
+from GitHub Releases. (If your router has no `unzip`, the `opkg install`
+line above adds it. If you prefer curl over wget, swap the download line.)
+
+## Files in this repo
+
 - `ike-vendor-ids` — vendor ID patterns file (goes to `/usr/share/ike-scan/`).
 - `ike-backoff-patterns` — backoff patterns file (goes to `/usr/share/ike-scan/`).
 - `config.h.aarch64-musl` — the manual config.h used for the cross-compile (no autotools on the build host).
 - `BUILD.md` — how this binary was built, so you can rebuild it yourself.
 
-## Install on your router (SSH)
-
-```sh
-# copy the binary and data files to the router, then:
-chmod +x /usr/bin/ike-scan
-mkdir -p /usr/share/ike-scan
-cp ike-vendor-ids ike-backoff-patterns /usr/share/ike-scan/
-ike-scan --version
-# should print: ike-scan 1.9.5
-```
-
-If your router has no `sftp-server` (scp fails), pipe it over ssh instead:
-
-```sh
-cat ike-scan-aarch64-static | ssh root@<router-ip> "cat > /usr/bin/ike-scan; chmod +x /usr/bin/ike-scan"
-```
+The binary itself (`ike-scan-aarch64-static`, 222 KB) is attached to the
+[Releases](https://github.com/OrbitingX/ike-scan-openwrt/releases) as
+`ike-scan-openwrt-aarch64-v1.9.5.zip` (binary + data files in one zip).
+GitHub's web uploader rejects extensionless binaries, so the zip is the
+distribution format — do not try to upload the bare binary.
 
 ## Use (WiFi Calling ePDG probe)
 
