@@ -1,8 +1,34 @@
 # ike-scan for OpenWrt routers (aarch64, static)
 
 Prebuilt static `ike-scan` 1.9.5 for aarch64 OpenWrt routers (GL.iNet, etc.).
-OpenWrt's opkg repos do not ship ike-scan, so this is a manual build for
-routers that need IKE probing (WiFi Calling / VoWiFi diagnosis, IPsec troubleshooting).
+OpenWrt's opkg repos do not ship ike-scan, so this fills the gap for anyone
+who needs to probe IKE servers directly from their router.
+
+## What is ike-scan?
+
+ike-scan is a command-line tool that sends IKE (Internet Key Exchange)
+probes to a target and reports what comes back. It speaks both IKEv1 and
+IKEv2, and it works by crafting packets and reading responses — no need for
+a full IPsec client, no need for the other side to cooperate beyond
+responding to IKE.
+
+## What you can use it for
+
+- **Probe any IKE server**: VPN gateways, firewalls, ePDGs, IPsec endpoints.
+  Send a probe, see if it responds, what IKE version it speaks, and what
+  transforms it offers.
+- **Diagnose IPsec connectivity**: Is the server reachable? Does it answer
+  IKE at all? Does it reject your proposal (and how)? Where does the
+  handshake stall?
+- **Fingerprint IKE implementations**: Vendor IDs and backoff patterns
+  identify what software the other side runs.
+- **WiFi Calling (VoWiFi) diagnosis**: WiFi Calling uses IKEv2 to reach the
+  carrier's ePDG. Probing the ePDG tells you whether the IKEv2 path from
+  your router is open, even when no phone is around to trigger a call.
+  (See the ePDG example below.)
+
+It is not limited to WiFi Calling — any scenario that needs IKE
+packet interaction works.
 
 ## Quick install on your router (no manual transfer needed)
 
@@ -38,15 +64,22 @@ The binary itself (`ike-scan-aarch64-static`, 222 KB) is attached to the
 GitHub's web uploader rejects extensionless binaries, so the zip is the
 distribution format — do not try to upload the bare binary.
 
-## Use (WiFi Calling ePDG probe)
+## Examples
 
-WiFi Calling uses IKEv2, not IKEv1. Probe the ePDG with IKEv2:
+### Probe any IKEv2 server
 
 ```sh
-ike-scan --ikev2 -M <ePDG-IP>
+ike-scan --ikev2 -M <target-IP>
 ```
 
-Example (T-Mobile US ePDG `epdg.epc.mnc260.mcc310.pub.3gppnetwork.org` → 208.54.39.131):
+A `notify` response proves the target is reachable and speaks IKEv2.
+`INVALID_KE_PAYLOAD` is expected with default proposals — the point is that
+it *responded*. No response at all means the target ignores IKE (or the
+path is blocked).
+
+### WiFi Calling ePDG example
+
+T-Mobile US ePDG `epdg.epc.mnc260.mcc310.pub.3gppnetwork.org` → 208.54.39.131:
 
 ```sh
 ike-scan --ikev2 -M 208.54.39.131
@@ -55,9 +88,9 @@ ike-scan --ikev2 -M 208.54.39.131
 # 0 returned handshake; 1 returned notify
 ```
 
-A `notify` response proves the ePDG is reachable and speaks IKEv2.
-`INVALID_KE_PAYLOAD` is expected with default proposals — the point is that
-it *responded*. No response at all (IKEv1 probe) means IKEv1 is ignored.
+The `notify` response proves the ePDG is reachable and the IKEv2 path from
+your router is open. An IKEv1 probe to the same host returns nothing
+(0 handshake, 0 notify) — the ePDG only speaks IKEv2.
 
 ## Why static?
 
